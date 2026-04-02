@@ -17,6 +17,7 @@ A lightweight, Docker-based development environment that bundles multiple AI cod
 | [Codex CLI](https://github.com/openai/codex) | `@openai/codex` | `codex` |
 | [Claude Code](https://github.com/anthropics/claude-code) | `@anthropic-ai/claude-code` | `claude` |
 | [OhMyOpenAgent](https://ohmyopenagent.com/) | `oh-my-opencode` | `bunx oh-my-opencode` |
+| [OhMyOpenClaude](https://github.com/Yeachan-Heo/oh-my-claudecode) | `oh-my-claude-sisyphus` | `oh-my-claude` |
 | [OpenCode](https://github.com/sst/opencode) | `opencode-ai` | `opencode` |
 
 Node.js and other runtimes are managed by **[mise](https://mise.jdx.dev/)**, a fast polyglot version manager.
@@ -101,6 +102,7 @@ make build
 
 ```bash
 make build INSTALL_OHO=false
+make build INSTALL_OHC=false
 make build INSTALL_OPENCODE=false
 make build INSTALL_CODEX=false
 ```
@@ -109,6 +111,7 @@ make build INSTALL_CODEX=false
 
 ```bash
 make build OHO_VERSION=1.2.3
+make build OHC_VERSION=1.2.3
 make build CODEX_VERSION=0.1.2 CLAUDE_VERSION=1.2.3
 ```
 
@@ -125,6 +128,7 @@ docker build \
   --build-arg INSTALL_CODEX=true \
   --build-arg INSTALL_CLAUDE=true \
   --build-arg INSTALL_OHO=true \
+  --build-arg INSTALL_OHC=true \
   --build-arg INSTALL_OPENCODE=true \
   --build-arg NODE_VERSION=22 \
   --build-arg USER_UID=$(id -u) \
@@ -179,10 +183,12 @@ docker run -it --rm \
 | `INSTALL_CODEX` | `true` | Install Codex CLI |
 | `INSTALL_CLAUDE` | `true` | Install Claude Code |
 | `INSTALL_OHO` | `true` | Install OhMyOpenAgent |
+| `INSTALL_OHC` | `true` | Install OhMyOpenClaude |
 | `INSTALL_OPENCODE` | `true` | Install OpenCode |
 | `CODEX_VERSION` | `latest` | Codex CLI npm version |
 | `CLAUDE_VERSION` | `latest` | Claude Code npm version |
 | `OHO_VERSION` | `latest` | OhMyOpenAgent npm version |
+| `OHC_VERSION` | `latest` | OhMyOpenClaude npm version |
 | `OPENCODE_VERSION` | `latest` | OpenCode npm version |
 | `USER_UID` | `1000` | UID of the in-container `dev` user |
 | `USER_GID` | `1000` | GID of the in-container `dev` user |

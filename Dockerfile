@@ -32,11 +32,13 @@ ARG INSTALL_CODEX=true
 ARG INSTALL_CLAUDE=true
 ARG INSTALL_OPENCODE=true
 ARG INSTALL_OHO=true
+ARG INSTALL_OHC=true
 
 ARG CODEX_VERSION=latest
 ARG CLAUDE_VERSION=latest
 ARG OPENCODE_VERSION=latest
 ARG OHO_VERSION=latest
+ARG OHC_VERSION=latest
 
 ARG USER_UID=1000
 ARG USER_GID=1000
@@ -44,7 +46,9 @@ ARG USER_GID=1000
 # ── Persistent environment ───────────────────────────────────────────────────
 
 ENV INSTALL_OHO=${INSTALL_OHO} \
-    OHO_VERSION=${OHO_VERSION}
+    OHO_VERSION=${OHO_VERSION} \
+    INSTALL_OHC=${INSTALL_OHC} \
+    OHC_VERSION=${OHC_VERSION}
 
 # mise: store data + config in system-wide paths so every user can share them.
 ENV MISE_DATA_DIR=/usr/local/share/mise \
