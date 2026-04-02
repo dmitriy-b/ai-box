@@ -1,0 +1,13 @@
+# Docker build context
+.git
+
+# Editor / OS artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Local env files (never commit secrets)
+.env
+.env.*
+!.env.example
