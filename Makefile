@@ -31,6 +31,14 @@ NODE_VERSION        ?= 22
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
 
+# ── Dynamic Workspace Mounting ────────────────────────────────────────────────
+# Directory from which the user is running the command (defaults to ai-box root)
+HOST_DIR ?= $(CURDIR)
+# The base name of the host directory to use inside the container
+DIR_NAME ?= $(notdir $(HOST_DIR))
+# The path inside the container where the host directory will be mounted
+WORKDIR  ?= /workspace/$(DIR_NAME)
+
 # ── Accounts / Configurations ────────────────────────────────────────────────
 ACCOUNT             ?= default
 DATA_DIR            := $(CURDIR)/data
@@ -42,8 +50,8 @@ OPENCODE_DATA_DIR   := $(DATA_DIR)/opencode/$(ACCOUNT)
 DOCKER_RUN_FLAGS := \
   --rm \
   --interactive \
-  --volume "$(CURDIR):/workspace" \
-  --workdir /workspace
+  --volume "$(HOST_DIR):$(WORKDIR)" \
+  --workdir "$(WORKDIR)"
 
 # Mount data directories to persist tool configurations
 DOCKER_RUN_FLAGS += \
@@ -66,7 +74,7 @@ DOCKER_RUN_FLAGS += \
   --env GITHUB_TOKEN
 
 # =============================================================================
-.PHONY: build run shell help setup-data
+.PHONY: build run shell help setup-data aliases
 
 # Ensure local data directories and files exist before running so Docker doesn't
 # create them as root-owned directories.
@@ -130,6 +138,41 @@ run: setup-data
 
 ## shell: Alias for run.
 shell: run
+
+## aliases: Generate shell aliases/functions to use ai-box from any directory.
+aliases:
+	@echo ""
+	@echo "# ============================================================================="
+	@echo "# Add the following to your ~/.zshrc or ~/.bashrc to use ai-box globally"
+	@echo "# ============================================================================="
+	@echo ""
+	@echo "# Generic wrapper to run ai-box tools from any directory"
+	@echo "ai-box() {"
+	@echo "    make -C \"$(abspath $(CURDIR))\" run HOST_DIR=\"\$$PWD\" -- \"\$$@\""
+	@echo "}"
+	@echo ""
+	@echo "# Fast tool aliases (using default account)"
+	@echo "alias claude-box='ai-box claude'"
+	@echo "alias codex-box='ai-box codex'"
+	@echo "alias opencode-box='ai-box opencode'"
+	@echo ""
+	@echo "# ── Auto-detected account aliases ────────────────────────────────────────────"
+	@for tool in claude codex opencode; do \
+		if [ -d "$(DATA_DIR)/$$tool" ]; then \
+			for acc_dir in "$(DATA_DIR)/$$tool"/*; do \
+				if [ -d "$$acc_dir" ]; then \
+					account=$$(basename "$$acc_dir"); \
+					if [ "$$account" != "default" ] && [ "$$account" != "*" ]; then \
+						echo "alias $${tool}-$${account}='make -C \"$(abspath $(CURDIR))\" run HOST_DIR=\"\$$PWD\" ACCOUNT=\"$$account\" -- $$tool'"; \
+					fi; \
+				fi; \
+			done; \
+		fi; \
+	done
+	@echo ""
+	@echo "# To apply automatically, run:"
+	@echo "# make aliases >> ~/.zshrc && source ~/.zshrc"
+	@echo ""
 
 ## help: Show this help message.
 help:

@@ -24,12 +24,32 @@ make build
 make run
 ```
 
-Inside the container, all tools are on `$PATH` and your local files are available under `/workspace`.
+Inside the container, all tools are on `$PATH` and your local files are available under `/workspace/$(basename $PWD)`.
 
 You can also run tools directly and pass arguments using `--`:
 ```bash
 make run -- claude --some-flag
 make run -- codex --version
+```
+
+---
+
+## Global Usage (Use from anywhere)
+
+You don't need to be inside the `ai-box` directory to use your tools. Run `make aliases` to generate shell functions and aliases that you can add to your `~/.zshrc` or `~/.bashrc`:
+
+```bash
+make aliases
+```
+
+This will output a snippet you can copy-paste, including:
+1. A global `ai-box` command that intelligently mounts your current host directory into the container.
+2. Fast aliases like `claude-box`, `codex-box`, etc.
+3. Automatically generated aliases for any specific **accounts/profiles** you've created (e.g. `claude-personal`, `claude-work`).
+
+To apply them immediately:
+```bash
+make aliases >> ~/.zshrc && source ~/.zshrc
 ```
 
 ---
@@ -105,12 +125,13 @@ docker build \
 ## Running interactively
 
 ```bash
-# Interactive shell (current directory mounted at /workspace)
+# Interactive shell (current directory mounted at /workspace/$(basename $PWD))
 make run
 
 # Equivalent docker command
 docker run -it --rm \
-  -v "$(pwd):/workspace" \
+  -v "$(pwd):/workspace/$(basename $PWD)" \
+  -w "/workspace/$(basename $PWD)" \
   -e OPENAI_API_KEY \
   -e ANTHROPIC_API_KEY \
   ai-box
@@ -172,6 +193,8 @@ Pass API keys and tokens via `-e` or by exporting them in your shell before runn
 | `make build` | Build the Docker image |
 | `make run` | Start an interactive shell with `$(pwd)` mounted |
 | `make shell` | Alias for `make run` |
+| `make aliases` | Generate shell aliases/functions to use tools from any directory |
+| `make setup-data` | Pre-create `data/` directories to prevent root-ownership by Docker |
 | `make help` | Print all targets and current variable values |
 
 ---
