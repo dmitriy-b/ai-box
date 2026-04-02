@@ -229,3 +229,73 @@ help:
 	@echo "    HOST_UID            $(HOST_UID)"
 	@echo "    HOST_GID            $(HOST_GID)"
 	@echo ""
+
+# =============================================================================
+# Export ai-box image with baked-in data to a tar for external VM transfer
+# - Base: ai-box:latest
+# - Exported image tag: ai-box:export-with-data
+# - Output tar: ai-box-export.tar
+# - Temporary container: ai-box-export-temp
+# =============================================================================
+.PHONY: export-with-data check-export clean-export
+
+# Configurable variables
+AI_BOX_BASE ?= $(IMAGE_NAME):$(IMAGE_TAG)
+EXPORT_IMG ?= $(IMAGE_NAME):export-with-data
+EXPORT_TAR ?= $(IMAGE_NAME)-export.tar
+EXPORT_CONTAINER ?= ai-box-export-temp
+EXPORT_DATA_DIR ?= $(DATA_DIR)
+HOME_DEV_DIR ?= /home/dev
+
+# Step: bake data into a new image by copying data into a temp container and committing
+export-with-data: setup-data
+	@set -e; \
+	docker image inspect $(AI_BOX_BASE) >/dev/null 2>&1 || { echo "Base image $(AI_BOX_BASE) not found. Build or pull it first."; exit 1; }; \
+	docker rm -f $(EXPORT_CONTAINER) 2>/dev/null || true; \
+	echo "Starting temporary container to inject profile data for ACCOUNT=$(ACCOUNT)..."; \
+	docker run -d --name $(EXPORT_CONTAINER) $(AI_BOX_BASE) tail -f /dev/null >/dev/null; \
+	docker exec -u root $(EXPORT_CONTAINER) mkdir -p \
+		$(HOME_DEV_DIR)/.claude \
+		$(HOME_DEV_DIR)/.codex \
+		$(HOME_DEV_DIR)/.config/opencode \
+		$(HOME_DEV_DIR)/.local/share/opencode \
+		$(HOME_DEV_DIR)/.local/state/opencode \
+		$(HOME_DEV_DIR)/.cache/opencode; \
+	docker exec -u root $(EXPORT_CONTAINER) chown -R dev:dialout $(HOME_DEV_DIR)/.claude $(HOME_DEV_DIR)/.codex $(HOME_DEV_DIR)/.config $(HOME_DEV_DIR)/.local $(HOME_DEV_DIR)/.cache; \
+	if [ -d "$(CLAUDE_DATA_DIR)/.claude" ] && [ "$$(ls -A $(CLAUDE_DATA_DIR)/.claude)" ]; then \
+		docker cp $(CLAUDE_DATA_DIR)/.claude/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.claude/; \
+	fi; \
+	if [ -d "$(CODEX_DATA_DIR)/.codex" ] && [ "$$(ls -A $(CODEX_DATA_DIR)/.codex)" ]; then \
+		docker cp $(CODEX_DATA_DIR)/.codex/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.codex/; \
+	fi; \
+	if [ -d "$(OPENCODE_DATA_DIR)/.config/opencode" ] && [ "$$(ls -A $(OPENCODE_DATA_DIR)/.config/opencode)" ]; then \
+		docker cp $(OPENCODE_DATA_DIR)/.config/opencode/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.config/opencode/; \
+	fi; \
+	if [ -d "$(OPENCODE_DATA_DIR)/.local/share/opencode" ] && [ "$$(ls -A $(OPENCODE_DATA_DIR)/.local/share/opencode)" ]; then \
+		docker cp $(OPENCODE_DATA_DIR)/.local/share/opencode/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.local/share/opencode/; \
+	fi; \
+	if [ -d "$(OPENCODE_DATA_DIR)/.local/state/opencode" ] && [ "$$(ls -A $(OPENCODE_DATA_DIR)/.local/state/opencode)" ]; then \
+		docker cp $(OPENCODE_DATA_DIR)/.local/state/opencode/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.local/state/opencode/; \
+	fi; \
+	if [ -d "$(OPENCODE_DATA_DIR)/.cache/opencode" ] && [ "$$(ls -A $(OPENCODE_DATA_DIR)/.cache/opencode)" ]; then \
+		docker cp $(OPENCODE_DATA_DIR)/.cache/opencode/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.cache/opencode/; \
+	fi; \
+	echo "Committing to $(EXPORT_IMG)..."; \
+	docker commit $(EXPORT_CONTAINER) $(EXPORT_IMG) >/dev/null; \
+	docker rm -f $(EXPORT_CONTAINER) >/dev/null; \
+	echo "Saving to $(EXPORT_TAR)..."; \
+	docker save -o $(EXPORT_TAR) $(EXPORT_IMG); \
+	echo "Export complete: image '$(EXPORT_IMG)' saved to '$(EXPORT_TAR)'."
+
+# Quick verification: run a short container against the new image to list /home/dev
+check-export:
+	@set -e; \
+	docker image inspect $(EXPORT_IMG) >/dev/null 2>&1 || { echo "Export image $(EXPORT_IMG) not found. Run 'make export-with-data' first."; exit 1; }; \
+	docker run --rm --name test-export-run $(EXPORT_IMG) ls -la $(HOME_DEV_DIR)
+
+# Cleanup exported artifacts if you want to redo from scratch
+clean-export:
+	@set -e; \
+	rm -f $(EXPORT_TAR) || true; \
+	docker image rm $(EXPORT_IMG) >/dev/null 2>&1 || true; \
+	echo "Export artifacts cleaned."

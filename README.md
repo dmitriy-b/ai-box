@@ -222,6 +222,48 @@ Runtime argument:
 | `make aliases` | Generate shell aliases/functions to use tools from any directory |
 | `make setup-data` | Pre-create `data/` directories to prevent root-ownership by Docker |
 | `make help` | Print all targets and current variable values |
+| `make export-with-data` | Bake local `data/` into a new image and export as `.tar` |
+| `make check-export` | Verify the exported image has the data baked in |
+| `make clean-export` | Remove the exported `.tar` and temporary image |
+
+---
+
+## Exporting to an External VM
+
+If you want to move your fully configured environment (including active session tokens, CLI logins, and tool configs stored in `data/`) to an external VM, you can bake the data into a new image and export it.
+
+By default, this exports the `default` account profile. If you want to export a specific profile, pass the `ACCOUNT` variable:
+
+```bash
+# 1. Bake data and export to tar
+make export-with-data ACCOUNT=work_profile
+```
+
+This will:
+1. Create a temporary container from `ai-box:latest`.
+2. Extract only the configs for your specified `ACCOUNT` (from `data/*/work_profile/...`) and inject them directly into the correct XDG paths in the container (`/home/dev/.claude`, `/home/dev/.config/opencode`, etc.).
+3. Commit it to a new image: `ai-box:export-with-data`.
+4. Save the image to `ai-box-export.tar`.
+
+**To move and use it on the external VM:**
+
+```bash
+# 2. Copy the tar file to your VM (e.g., using scp)
+scp ai-box-export.tar user@your-vm:/path/to/destination
+
+# 3. On the VM, load the image
+docker load -i ai-box-export.tar
+
+# 4. Run the image directly (data is already baked in)
+docker run -it --rm ai-box:export-with-data
+```
+
+> ⚠️ **Security Warning**: This process bakes everything currently in your local `data/` directory into the exported `.tar` file. This includes active session tokens and CLI logins. Treat the `.tar` file as sensitive data.
+
+To clean up the export artifacts on your host when you're done:
+```bash
+make clean-export
+```
 
 ---
 
