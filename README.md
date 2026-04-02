@@ -254,11 +254,40 @@ scp ai-box-export.tar user@your-vm:/path/to/destination
 # 3. On the VM, load the image
 docker load -i ai-box-export.tar
 
-# 4. Run the image directly (data is already baked in)
+# 4. Run an interactive shell (data is already baked in)
 docker run -it --rm ai-box:export-with-data
 ```
 
-> ⚠️ **Security Warning**: This process bakes everything currently in your local `data/` directory into the exported `.tar` file. This includes active session tokens and CLI logins. Treat the `.tar` file as sensitive data.
+Because your tokens and configurations are completely baked in, you don't need the `Makefile` or `data/` directory on the target VM. 
+
+To run a tool on the external VM against your actual code in the current directory, mount `$PWD` like this:
+
+```bash
+docker run -it --rm \
+  -v "$PWD:/workspace/$(basename $PWD)" \
+  -w "/workspace/$(basename $PWD)" \
+  ai-box:export-with-data codex .
+```
+
+**Pro Tip**: Add a wrapper alias to your `~/.bashrc` or `~/.zshrc` on the external VM to make using the baked image just as easy as your local environment:
+
+```bash
+ai-box-exported() {
+    docker run -it --rm \
+      -v "$PWD:/workspace/$(basename $PWD)" \
+      -w "/workspace/$(basename $PWD)" \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -e OPENAI_API_KEY \
+      -e ANTHROPIC_API_KEY \
+      ai-box:export-with-data "$@"
+}
+
+# Now you can just type:
+ai-box-exported codex .
+ai-box-exported claude
+```
+
+> ⚠️ **Security Warning**: This process bakes your specified `ACCOUNT` tokens into the exported `.tar` file. Treat the `.tar` file as highly sensitive data.
 
 To clean up the export artifacts on your host when you're done:
 ```bash
