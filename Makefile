@@ -116,6 +116,10 @@ ifeq (shell,$(firstword $(MAKECMDGOALS)))
   RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
   $(eval $(RUN_ARGS):;@:)
 endif
+ifeq (aliases,$(firstword $(MAKECMDGOALS)))
+  ALIAS_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(ALIAS_ARGS):;@:)
+endif
 
 ## build: Build the ai-box Docker image.
 build:
@@ -141,38 +145,49 @@ shell: run
 
 ## aliases: Generate shell aliases/functions to use ai-box from any directory.
 aliases:
-	@echo ""
-	@echo "# ============================================================================="
-	@echo "# Add the following to your ~/.zshrc or ~/.bashrc to use ai-box globally"
-	@echo "# ============================================================================="
-	@echo ""
-	@echo "# Generic wrapper to run ai-box tools from any directory"
-	@echo "ai-box() {"
-	@echo "    make -C \"$(abspath $(CURDIR))\" run HOST_DIR=\"\$$PWD\" -- \"\$$@\""
-	@echo "}"
-	@echo ""
-	@echo "# Fast tool aliases (using default account)"
-	@echo "alias claude-box='ai-box claude'"
-	@echo "alias codex-box='ai-box codex'"
-	@echo "alias opencode-box='ai-box opencode'"
-	@echo ""
-	@echo "# ── Auto-detected account aliases ────────────────────────────────────────────"
-	@for tool in claude codex opencode; do \
-		if [ -d "$(DATA_DIR)/$$tool" ]; then \
-			for acc_dir in "$(DATA_DIR)/$$tool"/*; do \
-				if [ -d "$$acc_dir" ]; then \
-					account=$$(basename "$$acc_dir"); \
-					if [ "$$account" != "default" ] && [ "$$account" != "*" ]; then \
-						echo "alias $${tool}-$${account}='make -C \"$(abspath $(CURDIR))\" run HOST_DIR=\"\$$PWD\" ACCOUNT=\"$$account\" -- $$tool'"; \
-					fi; \
-				fi; \
-			done; \
+	@if [ -n "$(ALIAS_ARGS)" ]; then \
+		TOOL="$$(echo "$(ALIAS_ARGS)" | awk '{for(i=1;i<=NF;i++) if ($$i != "--") {print $$i; break}}')"; \
+		[ -z "$$TOOL" ] && TOOL="$$(echo "$(ALIAS_ARGS)" | awk '{print $$1}')"; \
+		if [ "$(ACCOUNT)" = "default" ]; then \
+			ALIAS_NAME="$$TOOL"; \
+		else \
+			ALIAS_NAME="$$TOOL-$(ACCOUNT)"; \
 		fi; \
-	done
-	@echo ""
-	@echo "# To apply automatically, run:"
-	@echo "# make aliases >> ~/.zshrc && source ~/.zshrc"
-	@echo ""
+		echo "alias $$ALIAS_NAME='make -C \"$(abspath $(CURDIR))\" run HOST_DIR=\"\$$PWD\" ACCOUNT=\"$(ACCOUNT)\" -- $(ALIAS_ARGS)'"; \
+	else \
+		echo ""; \
+		echo "# ============================================================================="; \
+		echo "# Add the following to your ~/.zshrc or ~/.bashrc to use ai-box globally"; \
+		echo "# ============================================================================="; \
+		echo ""; \
+		echo "# Generic wrapper to run ai-box tools from any directory"; \
+		echo "ai-box() {"; \
+		echo "    make -C \"$(abspath $(CURDIR))\" run HOST_DIR=\"\$$PWD\" -- \"\$$@\""; \
+		echo "}"; \
+		echo ""; \
+		echo "# Fast tool aliases (using default account)"; \
+		echo "alias claude-box='ai-box claude'"; \
+		echo "alias codex-box='ai-box codex'"; \
+		echo "alias opencode-box='ai-box opencode'"; \
+		echo ""; \
+		echo "# ── Auto-detected account aliases ────────────────────────────────────────────"; \
+		for tool in claude codex opencode; do \
+			if [ -d "$(DATA_DIR)/$$tool" ]; then \
+				for acc_dir in "$(DATA_DIR)/$$tool"/*; do \
+					if [ -d "$$acc_dir" ]; then \
+						account=$$(basename "$$acc_dir"); \
+						if [ "$$account" != "default" ] && [ "$$account" != "*" ]; then \
+							echo "alias $${tool}-$${account}='make -C \"$(abspath $(CURDIR))\" run HOST_DIR=\"\$$PWD\" ACCOUNT=\"$$account\" -- $$tool'"; \
+						fi; \
+					fi; \
+				done; \
+			fi; \
+		done; \
+		echo ""; \
+		echo "# To apply automatically, run:"; \
+		echo "# make aliases >> ~/.zshrc && source ~/.zshrc"; \
+		echo ""; \
+	fi
 
 ## help: Show this help message.
 help:
