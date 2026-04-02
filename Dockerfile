@@ -6,12 +6,12 @@
 #
 #   Tool toggles (true / false):
 #     INSTALL_CODEX        — install Codex CLI          (default: true)
-#     INSTALL_CLAUDE_CODE  — install Claude Code        (default: true)
+#     INSTALL_CLAUDE       — install Claude Code        (default: true)
 #     INSTALL_OPENCODE     — install OpenCode           (default: true)
 #
 #   Version pins (npm tag or "latest"):
 #     CODEX_VERSION        (default: latest)
-#     CLAUDE_CODE_VERSION  (default: latest)
+#     CLAUDE_VERSION       (default: latest)
 #     OPENCODE_VERSION     (default: latest)
 #
 #   Runtime:
@@ -29,11 +29,11 @@ FROM debian:bookworm-slim
 ARG NODE_VERSION=22
 
 ARG INSTALL_CODEX=true
-ARG INSTALL_CLAUDE_CODE=true
+ARG INSTALL_CLAUDE=true
 ARG INSTALL_OPENCODE=true
 
 ARG CODEX_VERSION=latest
-ARG CLAUDE_CODE_VERSION=latest
+ARG CLAUDE_VERSION=latest
 ARG OPENCODE_VERSION=latest
 
 ARG USER_UID=1000
@@ -82,15 +82,18 @@ RUN mkdir -p /etc/mise \
 
 # ── Install AI tools ──────────────────────────────────────────────────────────
 
-COPY scripts/install-tools.sh /usr/local/bin/install-tools.sh
-RUN chmod +x /usr/local/bin/install-tools.sh \
-    && INSTALL_CODEX="${INSTALL_CODEX}" \
-       INSTALL_CLAUDE_CODE="${INSTALL_CLAUDE_CODE}" \
-       INSTALL_OPENCODE="${INSTALL_OPENCODE}" \
-       CODEX_VERSION="${CODEX_VERSION}" \
-       CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION}" \
-       OPENCODE_VERSION="${OPENCODE_VERSION}" \
-       /usr/local/bin/install-tools.sh \
+COPY scripts/install-*.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/install-*.sh \
+    && for script in /usr/local/bin/install-*.sh; do \
+         toolname=$(basename "$script" | sed 's/install-//' | sed 's/\.sh//' | tr 'a-z-' 'A-Z_'); \
+         varname="INSTALL_${toolname}"; \
+         version_varname="${toolname}_VERSION"; \
+         export "${version_varname}=$(eval echo \$${version_varname})"; \
+         if [ "$(eval echo \$${varname})" = "true" ]; then \
+             echo "Executing $script for $toolname..."; \
+             "$script"; \
+         fi; \
+       done \
     && chmod -R a+rX /usr/local/share/mise 2>/dev/null || true
 
 # ── Create a non-root developer user ─────────────────────────────────────────

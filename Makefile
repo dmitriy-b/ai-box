@@ -16,12 +16,12 @@ IMAGE_TAG   ?= latest
 
 # ── Tool toggles ──────────────────────────────────────────────────────────────
 INSTALL_CODEX       ?= true
-INSTALL_CLAUDE_CODE ?= true
+INSTALL_CLAUDE      ?= true
 INSTALL_OPENCODE    ?= true
 
 # ── Version pins (npm tag or "latest") ───────────────────────────────────────
 CODEX_VERSION       ?= latest
-CLAUDE_CODE_VERSION ?= latest
+CLAUDE_VERSION      ?= latest
 OPENCODE_VERSION    ?= latest
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
@@ -70,13 +70,33 @@ DOCKER_RUN_FLAGS += \
 
 # Ensure local data directories and files exist before running so Docker doesn't
 # create them as root-owned directories.
+# Supports specific tools: make setup-data opencode,codex
+ifeq (setup-data,$(firstword $(MAKECMDGOALS)))
+  SETUP_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(SETUP_ARGS):;@:)
+endif
+
 setup-data:
-	@mkdir -p "$(CLAUDE_DATA_DIR)/.claude"
-	@mkdir -p "$(CODEX_DATA_DIR)/.codex"
-	@mkdir -p "$(OPENCODE_DATA_DIR)/.config/opencode"
-	@mkdir -p "$(OPENCODE_DATA_DIR)/.local/share/opencode"
-	@mkdir -p "$(OPENCODE_DATA_DIR)/.local/state/opencode"
-	@mkdir -p "$(OPENCODE_DATA_DIR)/.cache/opencode"
+	@if [ -z "$(SETUP_ARGS)" ]; then \
+		mkdir -p "$(CLAUDE_DATA_DIR)/.claude"; \
+		mkdir -p "$(CODEX_DATA_DIR)/.codex"; \
+		mkdir -p "$(OPENCODE_DATA_DIR)/.config/opencode"; \
+		mkdir -p "$(OPENCODE_DATA_DIR)/.local/share/opencode"; \
+		mkdir -p "$(OPENCODE_DATA_DIR)/.local/state/opencode"; \
+		mkdir -p "$(OPENCODE_DATA_DIR)/.cache/opencode"; \
+	else \
+		IFS=',' read -ra TOOLS <<< "$(SETUP_ARGS)"; \
+		for tool in "$${TOOLS[@]}"; do \
+			if [ "$$tool" = "claude" ]; then mkdir -p "$(CLAUDE_DATA_DIR)/.claude"; fi; \
+			if [ "$$tool" = "codex" ]; then mkdir -p "$(CODEX_DATA_DIR)/.codex"; fi; \
+			if [ "$$tool" = "opencode" ]; then \
+				mkdir -p "$(OPENCODE_DATA_DIR)/.config/opencode"; \
+				mkdir -p "$(OPENCODE_DATA_DIR)/.local/share/opencode"; \
+				mkdir -p "$(OPENCODE_DATA_DIR)/.local/state/opencode"; \
+				mkdir -p "$(OPENCODE_DATA_DIR)/.cache/opencode"; \
+			fi; \
+		done; \
+	fi
 
 # If the first argument is "run" or "shell", allow passing additional arguments.
 # For example: make run -- claude --some-flag
@@ -93,10 +113,10 @@ endif
 build:
 	docker build \
 	  --build-arg INSTALL_CODEX="$(INSTALL_CODEX)" \
-	  --build-arg INSTALL_CLAUDE_CODE="$(INSTALL_CLAUDE_CODE)" \
+	  --build-arg INSTALL_CLAUDE="$(INSTALL_CLAUDE)" \
 	  --build-arg INSTALL_OPENCODE="$(INSTALL_OPENCODE)" \
 	  --build-arg CODEX_VERSION="$(CODEX_VERSION)" \
-	  --build-arg CLAUDE_CODE_VERSION="$(CLAUDE_CODE_VERSION)" \
+	  --build-arg CLAUDE_VERSION="$(CLAUDE_VERSION)" \
 	  --build-arg OPENCODE_VERSION="$(OPENCODE_VERSION)" \
 	  --build-arg NODE_VERSION="$(NODE_VERSION)" \
 	  --build-arg USER_UID="$(HOST_UID)" \
@@ -125,10 +145,10 @@ help:
 	@echo "    NODE_VERSION        $(NODE_VERSION)"
 	@echo "    ACCOUNT             $(ACCOUNT)"
 	@echo "    INSTALL_CODEX       $(INSTALL_CODEX)"
-	@echo "    INSTALL_CLAUDE_CODE $(INSTALL_CLAUDE_CODE)"
+	@echo "    INSTALL_CLAUDE      $(INSTALL_CLAUDE)"
 	@echo "    INSTALL_OPENCODE    $(INSTALL_OPENCODE)"
 	@echo "    CODEX_VERSION       $(CODEX_VERSION)"
-	@echo "    CLAUDE_CODE_VERSION $(CLAUDE_CODE_VERSION)"
+	@echo "    CLAUDE_VERSION      $(CLAUDE_VERSION)"
 	@echo "    OPENCODE_VERSION    $(OPENCODE_VERSION)"
 	@echo "    HOST_UID            $(HOST_UID)"
 	@echo "    HOST_GID            $(HOST_GID)"

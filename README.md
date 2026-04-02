@@ -50,6 +50,12 @@ make run ACCOUNT=personal_account -- codex
 
 This ensures that each account gets its own independent config files (e.g., `data/claude/work_account/`, `data/codex/personal_account/`), which are automatically volume-mounted into the correct XDG/home paths inside the container (`~/.claude`, `~/.codex`, `~/.config/opencode`, etc.).
 
+If you only want to generate config directories for specific tools:
+
+```bash
+make setup-data ACCOUNT=work_account opencode,codex
+```
+
 **Note:** The `data/` directory is ignored by Git to prevent accidentally committing your authentication tokens.
 
 ---
@@ -72,7 +78,7 @@ make build INSTALL_CODEX=false
 ### Pin specific tool versions
 
 ```bash
-make build CODEX_VERSION=0.1.2 CLAUDE_CODE_VERSION=1.2.3
+make build CODEX_VERSION=0.1.2 CLAUDE_VERSION=1.2.3
 ```
 
 ### Change Node.js version
@@ -86,7 +92,7 @@ make build NODE_VERSION=20
 ```bash
 docker build \
   --build-arg INSTALL_CODEX=true \
-  --build-arg INSTALL_CLAUDE_CODE=true \
+  --build-arg INSTALL_CLAUDE=true \
   --build-arg INSTALL_OPENCODE=true \
   --build-arg NODE_VERSION=22 \
   --build-arg USER_UID=$(id -u) \
@@ -138,10 +144,10 @@ docker run -it --rm \
 |-----------|---------|-------------|
 | `NODE_VERSION` | `22` | Node.js version managed by mise |
 | `INSTALL_CODEX` | `true` | Install Codex CLI |
-| `INSTALL_CLAUDE_CODE` | `true` | Install Claude Code |
+| `INSTALL_CLAUDE` | `true` | Install Claude Code |
 | `INSTALL_OPENCODE` | `true` | Install OpenCode |
 | `CODEX_VERSION` | `latest` | Codex CLI npm version |
-| `CLAUDE_CODE_VERSION` | `latest` | Claude Code npm version |
+| `CLAUDE_VERSION` | `latest` | Claude Code npm version |
 | `OPENCODE_VERSION` | `latest` | OpenCode npm version |
 | `USER_UID` | `1000` | UID of the in-container `dev` user |
 | `USER_GID` | `1000` | GID of the in-container `dev` user |
@@ -172,7 +178,10 @@ Pass API keys and tokens via `-e` or by exporting them in your shell before runn
 
 ## Adding more tools
 
-1. Add a new `ARG INSTALL_MYTOOL=true` / `ARG MYTOOL_VERSION=latest` section in `Dockerfile`.
-2. Add the corresponding install block in `scripts/install-tools.sh`.
-3. Document the new variables in this README.
-4. Expose the new variables in `Makefile`.
+The project uses a data-driven approach to tool installation. To add a new tool (e.g. `foo`):
+
+1. Create a script at `scripts/install-foo.sh` to install the tool.
+2. Add `ARG INSTALL_FOO=true` and `ARG FOO_VERSION=latest` to the `Dockerfile`.
+3. Add matching config in the `Makefile` (`INSTALL_FOO ?= true`, `FOO_VERSION ?= latest`).
+4. Update `setup-data` in the `Makefile` if the tool requires isolated configurations or state directories.
+5. Document the new variables in this README.
