@@ -18,11 +18,13 @@ IMAGE_TAG   ?= latest
 INSTALL_CODEX       ?= true
 INSTALL_CLAUDE      ?= true
 INSTALL_OPENCODE    ?= true
+INSTALL_OHO         ?= true
 
 # ── Version pins (npm tag or "latest") ───────────────────────────────────────
 CODEX_VERSION       ?= latest
 CLAUDE_VERSION      ?= latest
 OPENCODE_VERSION    ?= latest
+OHO_VERSION         ?= latest
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 NODE_VERSION        ?= 22
@@ -127,9 +129,11 @@ build:
 	  --build-arg INSTALL_CODEX="$(INSTALL_CODEX)" \
 	  --build-arg INSTALL_CLAUDE="$(INSTALL_CLAUDE)" \
 	  --build-arg INSTALL_OPENCODE="$(INSTALL_OPENCODE)" \
+	  --build-arg INSTALL_OHO="$(INSTALL_OHO)" \
 	  --build-arg CODEX_VERSION="$(CODEX_VERSION)" \
 	  --build-arg CLAUDE_VERSION="$(CLAUDE_VERSION)" \
 	  --build-arg OPENCODE_VERSION="$(OPENCODE_VERSION)" \
+	  --build-arg OHO_VERSION="$(OHO_VERSION)" \
 	  --build-arg NODE_VERSION="$(NODE_VERSION)" \
 	  --build-arg USER_UID="$(HOST_UID)" \
 	  --build-arg USER_GID="$(HOST_GID)" \
@@ -205,9 +209,11 @@ help:
 	@echo "    INSTALL_CODEX       $(INSTALL_CODEX)"
 	@echo "    INSTALL_CLAUDE      $(INSTALL_CLAUDE)"
 	@echo "    INSTALL_OPENCODE    $(INSTALL_OPENCODE)"
+	@echo "    INSTALL_OHO         $(INSTALL_OHO)"
 	@echo "    CODEX_VERSION       $(CODEX_VERSION)"
 	@echo "    CLAUDE_VERSION      $(CLAUDE_VERSION)"
 	@echo "    OPENCODE_VERSION    $(OPENCODE_VERSION)"
+	@echo "    OHO_VERSION         $(OHO_VERSION)"
 	@echo "    HOST_UID            $(HOST_UID)"
 	@echo "    HOST_GID            $(HOST_GID)"
 	@echo ""

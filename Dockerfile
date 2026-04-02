@@ -31,15 +31,20 @@ ARG NODE_VERSION=22
 ARG INSTALL_CODEX=true
 ARG INSTALL_CLAUDE=true
 ARG INSTALL_OPENCODE=true
+ARG INSTALL_OHO=true
 
 ARG CODEX_VERSION=latest
 ARG CLAUDE_VERSION=latest
 ARG OPENCODE_VERSION=latest
+ARG OHO_VERSION=latest
 
 ARG USER_UID=1000
 ARG USER_GID=1000
 
 # ── Persistent environment ───────────────────────────────────────────────────
+
+ENV INSTALL_OHO=${INSTALL_OHO} \
+    OHO_VERSION=${OHO_VERSION}
 
 # mise: store data + config in system-wide paths so every user can share them.
 ENV MISE_DATA_DIR=/usr/local/share/mise \
@@ -74,11 +79,14 @@ RUN curl -fsSL https://mise.run \
 # installed via npm (codex, claude, etc.) are discoverable without needing
 # `eval "$(mise activate bash)"`.
 RUN mkdir -p /etc/mise \
-    && printf '[tools]\nnode = "%s"\n' "${NODE_VERSION}" > /etc/mise/config.toml \
+    && printf '[tools]\nnode = "%s"\nbun = "latest"\n' "${NODE_VERSION}" > /etc/mise/config.toml \
     && mise install \
     && mise reshim \
     # Ensure the entire data dir is readable/executable by all users.
     && chmod -R a+rX /usr/local/share/mise
+
+RUN echo 'export PATH="/usr/local/share/mise/shims:$PATH"' > /etc/profile.d/mise.sh && \
+    chmod +x /etc/profile.d/mise.sh
 
 # ── Install AI tools ──────────────────────────────────────────────────────────
 
@@ -115,6 +123,22 @@ RUN mkdir -p /home/dev/.claude && \
     ln -s /home/dev/.claude/claude.json /home/dev/.claude.json && \
     chown -R "${USER_UID}:${USER_GID}" /home/dev/.claude /home/dev/.claude.json
 
+RUN cat << 'EOF' > /usr/local/bin/entrypoint.sh
+#!/bin/bash
+set -e
+
+if [ "${INSTALL_OHO:-false}" = "true" ] && [ ! -f ~/.config/opencode/oh-my-opencode.json ]; then
+    echo "Initializing OhMyOpenAgent for this workspace profile..."
+    mkdir -p ~/.config/opencode
+    bunx --bun oh-my-opencode@${OHO_VERSION:-latest} install --no-tui \
+        --claude=no --openai=no --gemini=no --copilot=no \
+        --opencode-zen=no --zai-coding-plan=no || true
+fi
+
+exec "$@"
+EOF
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # ── Workspace ─────────────────────────────────────────────────────────────────
 
 RUN mkdir -p /workspace && chown "${USER_UID}:${USER_GID}" /workspace
@@ -122,6 +146,8 @@ RUN mkdir -p /workspace && chown "${USER_UID}:${USER_GID}" /workspace
 WORKDIR /workspace
 
 USER dev
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Drop into an interactive login shell by default.
 CMD ["/bin/bash", "-l"]

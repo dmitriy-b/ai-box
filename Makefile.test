@@ -1,0 +1,14 @@
+ACCOUNT ?= default
+DATA_DIR := $(CURDIR)/test-data
+CLAUDE_DATA_DIR := $(DATA_DIR)/claude/$(ACCOUNT)
+CODEX_DATA_DIR := $(DATA_DIR)/codex/$(ACCOUNT)
+OPENCODE_DATA_DIR := $(DATA_DIR)/opencode/$(ACCOUNT)
+
+setup-data:
+	@mkdir -p "$(CLAUDE_DATA_DIR)/.claude"
+	@touch "$(CLAUDE_DATA_DIR)/.claude.json"
+	@mkdir -p "$(CODEX_DATA_DIR)/.codex"
+	@mkdir -p "$(OPENCODE_DATA_DIR)/.config/opencode"
+	@mkdir -p "$(OPENCODE_DATA_DIR)/.local/share/opencode"
+	@mkdir -p "$(OPENCODE_DATA_DIR)/.local/state/opencode"
+	@mkdir -p "$(OPENCODE_DATA_DIR)/.cache/opencode"

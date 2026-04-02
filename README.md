@@ -2,12 +2,21 @@
 
 A lightweight, Docker-based development environment that bundles multiple AI coding tools into a single reproducible image.
 
+## Why?
+
+- Run tools inside fully isolated docker environmnt (only mount volumes with working repository) 
+- Speedup agent work (e.g. using `--dangerously-skip-permissions`)
+- Quick switch beetween tools subscriptions by using custom profiles and bash aliases
+- Test tools without installing it on the host
+- Easy to share tools, configs with just export docker image 
+
 ## What it includes
 
 | Tool | Package | Command |
 |------|---------|---------|
 | [Codex CLI](https://github.com/openai/codex) | `@openai/codex` | `codex` |
 | [Claude Code](https://github.com/anthropics/claude-code) | `@anthropic-ai/claude-code` | `claude` |
+| [OhMyOpenAgent](https://ohmyopenagent.com/) | `oh-my-opencode` | `bunx oh-my-opencode` |
 | [OpenCode](https://github.com/sst/opencode) | `opencode-ai` | `opencode` |
 
 Node.js and other runtimes are managed by **[mise](https://mise.jdx.dev/)**, a fast polyglot version manager.
@@ -91,6 +100,7 @@ make build
 ### Enable or disable individual tools
 
 ```bash
+make build INSTALL_OHO=false
 make build INSTALL_OPENCODE=false
 make build INSTALL_CODEX=false
 ```
@@ -98,6 +108,7 @@ make build INSTALL_CODEX=false
 ### Pin specific tool versions
 
 ```bash
+make build OHO_VERSION=1.2.3
 make build CODEX_VERSION=0.1.2 CLAUDE_VERSION=1.2.3
 ```
 
@@ -113,6 +124,7 @@ make build NODE_VERSION=20
 docker build \
   --build-arg INSTALL_CODEX=true \
   --build-arg INSTALL_CLAUDE=true \
+  --build-arg INSTALL_OHO=true \
   --build-arg INSTALL_OPENCODE=true \
   --build-arg NODE_VERSION=22 \
   --build-arg USER_UID=$(id -u) \
@@ -166,9 +178,11 @@ docker run -it --rm \
 | `NODE_VERSION` | `22` | Node.js version managed by mise |
 | `INSTALL_CODEX` | `true` | Install Codex CLI |
 | `INSTALL_CLAUDE` | `true` | Install Claude Code |
+| `INSTALL_OHO` | `true` | Install OhMyOpenAgent |
 | `INSTALL_OPENCODE` | `true` | Install OpenCode |
 | `CODEX_VERSION` | `latest` | Codex CLI npm version |
 | `CLAUDE_VERSION` | `latest` | Claude Code npm version |
+| `OHO_VERSION` | `latest` | OhMyOpenAgent npm version |
 | `OPENCODE_VERSION` | `latest` | OpenCode npm version |
 | `USER_UID` | `1000` | UID of the in-container `dev` user |
 | `USER_GID` | `1000` | GID of the in-container `dev` user |
