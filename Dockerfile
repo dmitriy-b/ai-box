@@ -8,13 +8,11 @@
 #     INSTALL_CODEX        — install Codex CLI          (default: true)
 #     INSTALL_CLAUDE_CODE  — install Claude Code        (default: true)
 #     INSTALL_OPENCODE     — install OpenCode           (default: true)
-#     INSTALL_COPILOT      — install GitHub Copilot CLI (default: true)
 #
 #   Version pins (npm tag or "latest"):
 #     CODEX_VERSION        (default: latest)
 #     CLAUDE_CODE_VERSION  (default: latest)
 #     OPENCODE_VERSION     (default: latest)
-#     (gh-copilot extension is always installed at latest)
 #
 #   Runtime:
 #     NODE_VERSION         — Node.js version for mise   (default: 22)
@@ -33,7 +31,6 @@ ARG NODE_VERSION=22
 ARG INSTALL_CODEX=true
 ARG INSTALL_CLAUDE_CODE=true
 ARG INSTALL_OPENCODE=true
-ARG INSTALL_COPILOT=true
 
 ARG CODEX_VERSION=latest
 ARG CLAUDE_CODE_VERSION=latest
@@ -50,8 +47,6 @@ ENV MISE_DATA_DIR=/usr/local/share/mise \
     MISE_CACHE_DIR=/tmp/mise-cache \
     # mise shims must come before any other node/npm paths.
     PATH="/usr/local/share/mise/shims:$PATH" \
-    # gh CLI: store extensions in a world-readable system path.
-    GH_DATA_DIR=/usr/local/share/gh \
     # Suppress npm update-notifier noise inside the container.
     NO_UPDATE_NOTIFIER=1 \
     NPM_CONFIG_UPDATE_NOTIFIER=false
@@ -92,15 +87,11 @@ RUN chmod +x /usr/local/bin/install-tools.sh \
     && INSTALL_CODEX="${INSTALL_CODEX}" \
        INSTALL_CLAUDE_CODE="${INSTALL_CLAUDE_CODE}" \
        INSTALL_OPENCODE="${INSTALL_OPENCODE}" \
-       INSTALL_COPILOT="${INSTALL_COPILOT}" \
        CODEX_VERSION="${CODEX_VERSION}" \
        CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION}" \
        OPENCODE_VERSION="${OPENCODE_VERSION}" \
-       GH_DATA_DIR="${GH_DATA_DIR:-/usr/local/share/gh}" \
        /usr/local/bin/install-tools.sh \
-    # Make npm globals and gh data readable by all users.
-    && chmod -R a+rX /usr/local/share/mise 2>/dev/null || true \
-    && chmod -R a+rX /usr/local/share/gh   2>/dev/null || true
+    && chmod -R a+rX /usr/local/share/mise 2>/dev/null || true
 
 # ── Create a non-root developer user ─────────────────────────────────────────
 # UID / GID are configurable at build time so that files written to a mounted
@@ -116,6 +107,10 @@ RUN groupadd --gid "${USER_GID}" dev 2>/dev/null || true \
     # Allow passwordless sudo for convenience in development.
     && echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev \
     && chmod 0440 /etc/sudoers.d/dev
+
+RUN mkdir -p /home/dev/.claude && \
+    ln -s /home/dev/.claude/claude.json /home/dev/.claude.json && \
+    chown -R "${USER_UID}:${USER_GID}" /home/dev/.claude /home/dev/.claude.json
 
 # ── Workspace ─────────────────────────────────────────────────────────────────
 
