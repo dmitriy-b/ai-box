@@ -1,0 +1,17 @@
+# Exclude VCS history from the build context
+.git
+.gitignore
+
+# Editor / OS artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Documentation (not needed at build time)
+README.md
