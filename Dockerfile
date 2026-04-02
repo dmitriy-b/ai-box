@@ -70,6 +70,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         sudo \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Install Docker CLI (static binary) ────────────────────────────────────────
+
+ARG DOCKER_CLI_VERSION="27.5.1"
+RUN curl -fsSL "https://download.docker.com/linux/static/stable/$(uname -m | sed 's/x86_64/x86_64/;s/aarch64/aarch64/')/docker-${DOCKER_CLI_VERSION}.tgz" -o docker.tgz \
+    && tar -xzf docker.tgz docker/docker \
+    && mv docker/docker /usr/local/bin/ \
+    && rm -rf docker docker.tgz \
+    && groupadd -r docker 2>/dev/null || true \
+    && usermod -aG docker root
+
 # ── Install mise (universal version manager) ─────────────────────────────────
 # https://mise.jdx.dev/
 
@@ -119,6 +129,7 @@ RUN groupadd --gid "${USER_GID}" dev 2>/dev/null || true \
         --create-home \
         --shell /bin/bash \
         dev 2>/dev/null || true \
+    && usermod -aG docker dev 2>/dev/null || true \
     # Allow passwordless sudo for convenience in development.
     && echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev \
     && chmod 0440 /etc/sudoers.d/dev
@@ -130,6 +141,8 @@ RUN mkdir -p /home/dev/.claude && \
 RUN cat << 'EOF' > /usr/local/bin/entrypoint.sh
 #!/bin/bash
 set -e
+
+sudo chown "$(id -u)":"$(id -g)" /var/run/docker.sock 2>/dev/null || true
 
 if [ "${INSTALL_OHO:-false}" = "true" ] && [ ! -f ~/.config/opencode/oh-my-opencode.json ]; then
     echo "Initializing OhMyOpenAgent for this workspace profile..."

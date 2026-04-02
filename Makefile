@@ -20,6 +20,7 @@ INSTALL_CLAUDE      ?= true
 INSTALL_OPENCODE    ?= true
 INSTALL_OHO         ?= true
 INSTALL_OHC         ?= true
+SHARE_DOCKER        ?= true
 
 # ── Version pins (npm tag or "latest") ───────────────────────────────────────
 CODEX_VERSION       ?= latest
@@ -56,6 +57,11 @@ DOCKER_RUN_FLAGS := \
   --interactive \
   --volume "$(HOST_DIR):$(WORKDIR)" \
   --workdir "$(WORKDIR)"
+
+# Share host docker socket
+ifeq ($(SHARE_DOCKER),true)
+  DOCKER_RUN_FLAGS += --volume /var/run/docker.sock:/var/run/docker.sock
+endif
 
 # Mount data directories to persist tool configurations
 DOCKER_RUN_FLAGS += \

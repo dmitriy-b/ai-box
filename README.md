@@ -20,6 +20,8 @@ A lightweight, Docker-based development environment that bundles multiple AI cod
 | [OhMyOpenClaude](https://github.com/Yeachan-Heo/oh-my-claudecode) | `oh-my-claude-sisyphus` | `oh-my-claude` |
 | [OpenCode](https://github.com/sst/opencode) | `opencode-ai` | `opencode` |
 
+Docker CLI is also installed so you can run containers from within the ai-box environment.
+
 Node.js and other runtimes are managed by **[mise](https://mise.jdx.dev/)**, a fast polyglot version manager.
 
 ---
@@ -198,6 +200,10 @@ docker run -it --rm \
 ## Environment variables at runtime
 
 Pass API keys and tokens via `-e` or by exporting them in your shell before running `make run`.
+
+Runtime argument:
+
+- `SHARE_DOCKER=true/false` (default: `true`): when enabled, the host's `/var/run/docker.sock` is mounted into the container.
 
 | Variable | Used by |
 |----------|---------|
