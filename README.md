@@ -9,7 +9,6 @@ A lightweight, Docker-based development environment that bundles multiple AI cod
 | [Codex CLI](https://github.com/openai/codex) | `@openai/codex` | `codex` |
 | [Claude Code](https://github.com/anthropics/claude-code) | `@anthropic-ai/claude-code` | `claude` |
 | [OpenCode](https://github.com/sst/opencode) | `opencode-ai` | `opencode` |
-| [GitHub Copilot CLI](https://githubnext.com/projects/github-copilot-cli) | `gh` + `gh-copilot` extension | `gh copilot` |
 
 Node.js and other runtimes are managed by **[mise](https://mise.jdx.dev/)**, a fast polyglot version manager.
 
@@ -27,6 +26,32 @@ make run
 
 Inside the container, all tools are on `$PATH` and your local files are available under `/workspace`.
 
+You can also run tools directly and pass arguments using `--`:
+```bash
+make run -- claude --some-flag
+make run -- codex --version
+```
+
+---
+
+## Multiple Accounts / Subscriptions
+
+If you use multiple accounts (e.g. one for personal, one for work), `ai-box` can seamlessly switch between them by persisting configurations in separate local directories under `data/`.
+
+Provide the `ACCOUNT` variable when running:
+
+```bash
+# Use "work_account" profile
+make run ACCOUNT=work_account -- claude
+
+# Use "personal_account" profile
+make run ACCOUNT=personal_account -- codex
+```
+
+This ensures that each account gets its own independent config files (e.g., `data/claude/work_account/`, `data/codex/personal_account/`), which are automatically volume-mounted into the correct XDG/home paths inside the container (`~/.claude`, `~/.codex`, `~/.config/opencode`, etc.).
+
+**Note:** The `data/` directory is ignored by Git to prevent accidentally committing your authentication tokens.
+
 ---
 
 ## Building
@@ -41,7 +66,7 @@ make build
 
 ```bash
 make build INSTALL_OPENCODE=false
-make build INSTALL_CODEX=false INSTALL_COPILOT=false
+make build INSTALL_CODEX=false
 ```
 
 ### Pin specific tool versions
@@ -63,7 +88,6 @@ docker build \
   --build-arg INSTALL_CODEX=true \
   --build-arg INSTALL_CLAUDE_CODE=true \
   --build-arg INSTALL_OPENCODE=true \
-  --build-arg INSTALL_COPILOT=true \
   --build-arg NODE_VERSION=22 \
   --build-arg USER_UID=$(id -u) \
   --build-arg USER_GID=$(id -g) \
@@ -83,7 +107,6 @@ docker run -it --rm \
   -v "$(pwd):/workspace" \
   -e OPENAI_API_KEY \
   -e ANTHROPIC_API_KEY \
-  -e GITHUB_TOKEN \
   ai-box
 ```
 
@@ -117,7 +140,6 @@ docker run -it --rm \
 | `INSTALL_CODEX` | `true` | Install Codex CLI |
 | `INSTALL_CLAUDE_CODE` | `true` | Install Claude Code |
 | `INSTALL_OPENCODE` | `true` | Install OpenCode |
-| `INSTALL_COPILOT` | `true` | Install GitHub Copilot CLI (`gh` + extension) |
 | `CODEX_VERSION` | `latest` | Codex CLI npm version |
 | `CLAUDE_CODE_VERSION` | `latest` | Claude Code npm version |
 | `OPENCODE_VERSION` | `latest` | OpenCode npm version |
@@ -134,9 +156,6 @@ Pass API keys and tokens via `-e` or by exporting them in your shell before runn
 |----------|---------|
 | `OPENAI_API_KEY` | Codex CLI |
 | `ANTHROPIC_API_KEY` | Claude Code |
-| `GITHUB_TOKEN` | gh / Copilot extension |
-
-> **GitHub Copilot** requires an active Copilot subscription. Authenticate with `gh auth login` on first use, or pass `GITHUB_TOKEN` at runtime.
 
 ---
 

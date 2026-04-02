@@ -11,3 +11,6 @@
 .env
 .env.*
 !.env.example
+
+# Tool data volumes
+data/
