@@ -19,6 +19,7 @@ A lightweight, Docker-based development environment that bundles multiple AI cod
 | [OhMyOpenAgent](https://ohmyopenagent.com/) | `oh-my-opencode` | `bunx oh-my-opencode` |
 | [OhMyOpenClaude](https://github.com/Yeachan-Heo/oh-my-claudecode) | `oh-my-claude-sisyphus` | `oh-my-claude` |
 | [OpenCode](https://github.com/sst/opencode) | `opencode-ai` | `opencode` |
+| [ACP Bridge](https://github.com/aws-samples/sample-acp-bridge) | `sample-acp-bridge` | `acp-bridge` |
 
 Docker CLI is also installed so you can run containers from within the ai-box environment.
 
@@ -85,10 +86,53 @@ This ensures that each account gets its own independent config files (e.g., `dat
 If you only want to generate config directories for specific tools:
 
 ```bash
-make setup-data ACCOUNT=work_account opencode,codex
+make setup-data ACCOUNT=work_account SETUP_ARGS=opencode,codex
 ```
 
 **Note:** The `data/` directory is ignored by Git to prevent accidentally committing your authentication tokens.
+
+---
+
+## ACP Bridge (Multi-Agent API)
+
+The `ai-box` includes the [Sample ACP Bridge](https://github.com/aws-samples/sample-acp-bridge) by default, which provides a unified REST API for multiple CLI agents (Claude Code, Codex, OpenCode).
+
+### 1. Setup Configuration
+
+Generate the default configuration file for your profile:
+
+```bash
+make setup-data ACCOUNT=personal SETUP_ARGS=acp-bridge
+```
+
+This creates a `data/acp-bridge/personal/config.yml` file. You can edit this file to enable/disable specific agents, change the bridge port, or enable the Web UI. By default, it uses the `ACP_BRIDGE_TOKEN` environment variable for authentication.
+
+### 2. Start the Bridge
+
+Start the container and run the `acp-bridge` command. The Makefile automatically publishes port `18010` to your host machine:
+
+```bash
+export ACP_BRIDGE_TOKEN="your-secure-token"
+make run ACCOUNT=personal RUN_ARGS="acp-bridge"
+```
+
+### 3. Submit a Job
+
+You can now interact with any of the installed agents via the bridge's REST API:
+
+```bash
+curl -X POST http://127.0.0.1:18010/jobs \
+  -H "Authorization: Bearer your-secure-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_name": "opencode",
+    "prompt": "Write a python script that prints hello world",
+    "target": "user:123",
+    "channel": "terminal"
+  }'
+```
+
+The bridge will spawn the requested agent (in this case, `opencode`), run the prompt, and manage the underlying processes.
 
 ---
 
@@ -187,11 +231,13 @@ docker run -it --rm \
 | `INSTALL_OHO` | `true` | Install OhMyOpenAgent |
 | `INSTALL_OHC` | `true` | Install OhMyOpenClaude |
 | `INSTALL_OPENCODE` | `true` | Install OpenCode |
+| `INSTALL_ACPBRIDGE` | `true` | Install ACP Bridge |
 | `CODEX_VERSION` | `latest` | Codex CLI npm version |
 | `CLAUDE_VERSION` | `latest` | Claude Code npm version |
 | `OHO_VERSION` | `latest` | OhMyOpenAgent npm version |
 | `OHC_VERSION` | `latest` | OhMyOpenClaude npm version |
 | `OPENCODE_VERSION` | `latest` | OpenCode npm version |
+| `ACPBRIDGE_VERSION` | `latest` | ACP Bridge branch/version to clone |
 | `USER_UID` | `1000` | UID of the in-container `dev` user |
 | `USER_GID` | `1000` | GID of the in-container `dev` user |
 
@@ -209,6 +255,10 @@ Runtime argument:
 |----------|---------|
 | `OPENAI_API_KEY` | Codex CLI |
 | `ANTHROPIC_API_KEY` | Claude Code |
+| `ACP_BRIDGE_TOKEN` | ACP Bridge Authentication |
+| `CLAUDE_CODE_USE_BEDROCK` | ACP Bridge / Claude |
+| `ANTHROPIC_MODEL` | ACP Bridge / Claude |
+| `LITELLM_API_KEY` | ACP Bridge / LiteLLM Proxy |
 
 ---
 
