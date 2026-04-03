@@ -20,6 +20,7 @@ INSTALL_CLAUDE      ?= true
 INSTALL_OPENCODE    ?= true
 INSTALL_OHO         ?= true
 INSTALL_OHC         ?= true
+INSTALL_ACPBRIDGE   ?= true
 SHARE_DOCKER        ?= true
 
 # ── Version pins (npm tag or "latest") ───────────────────────────────────────
@@ -28,6 +29,7 @@ CLAUDE_VERSION      ?= latest
 OPENCODE_VERSION    ?= latest
 OHO_VERSION         ?= latest
 OHC_VERSION         ?= latest
+ACPBRIDGE_VERSION   ?= latest
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 NODE_VERSION        ?= 22
@@ -50,6 +52,7 @@ DATA_DIR            := $(CURDIR)/data
 CLAUDE_DATA_DIR     := $(DATA_DIR)/claude/$(ACCOUNT)
 CODEX_DATA_DIR      := $(DATA_DIR)/codex/$(ACCOUNT)
 OPENCODE_DATA_DIR   := $(DATA_DIR)/opencode/$(ACCOUNT)
+ACPBRIDGE_DATA_DIR  := $(DATA_DIR)/acp-bridge/$(ACCOUNT)
 
 # ── Docker run flags shared between run/shell targets ────────────────────────
 DOCKER_RUN_FLAGS := \
@@ -70,18 +73,26 @@ DOCKER_RUN_FLAGS += \
   --volume "$(OPENCODE_DATA_DIR)/.config/opencode:/home/dev/.config/opencode" \
   --volume "$(OPENCODE_DATA_DIR)/.local/share/opencode:/home/dev/.local/share/opencode" \
   --volume "$(OPENCODE_DATA_DIR)/.local/state/opencode:/home/dev/.local/state/opencode" \
-  --volume "$(OPENCODE_DATA_DIR)/.cache/opencode:/home/dev/.cache/opencode"
+  --volume "$(OPENCODE_DATA_DIR)/.cache/opencode:/home/dev/.cache/opencode" \
+  --volume "$(ACPBRIDGE_DATA_DIR)/config.yml:/home/dev/.acp-bridge/config.yml"
 
 # Allocate a TTY only if the command is run in a terminal
 ifeq ($(shell test -t 0 && echo true),true)
   DOCKER_RUN_FLAGS += --tty
 endif
 
+# Expose ACP Bridge port if enabled
+DOCKER_RUN_FLAGS += -p 18010:18010
+
 # Pass common API key env vars through from the host (no-op if unset).
 DOCKER_RUN_FLAGS += \
   --env OPENAI_API_KEY \
   --env ANTHROPIC_API_KEY \
-  --env GITHUB_TOKEN
+  --env GITHUB_TOKEN \
+  --env ACP_BRIDGE_TOKEN \
+  --env CLAUDE_CODE_USE_BEDROCK \
+  --env ANTHROPIC_MODEL \
+  --env LITELLM_API_KEY
 
 # =============================================================================
 .PHONY: build run shell help setup-data aliases
@@ -102,6 +113,8 @@ setup-data:
 		mkdir -p "$(OPENCODE_DATA_DIR)/.local/share/opencode"; \
 		mkdir -p "$(OPENCODE_DATA_DIR)/.local/state/opencode"; \
 		mkdir -p "$(OPENCODE_DATA_DIR)/.cache/opencode"; \
+		mkdir -p "$(ACPBRIDGE_DATA_DIR)"; \
+		if [ ! -f "$(ACPBRIDGE_DATA_DIR)/config.yml" ]; then cp "$(CURDIR)/defaults/acp-bridge.yml" "$(ACPBRIDGE_DATA_DIR)/config.yml"; fi; \
 	else \
 		IFS=',' read -ra TOOLS <<< "$(SETUP_ARGS)"; \
 		for tool in "$${TOOLS[@]}"; do \
@@ -112,6 +125,10 @@ setup-data:
 				mkdir -p "$(OPENCODE_DATA_DIR)/.local/share/opencode"; \
 				mkdir -p "$(OPENCODE_DATA_DIR)/.local/state/opencode"; \
 				mkdir -p "$(OPENCODE_DATA_DIR)/.cache/opencode"; \
+			fi; \
+			if [ "$$tool" = "acp-bridge" ] || [ "$$tool" = "acpbridge" ]; then \
+				mkdir -p "$(ACPBRIDGE_DATA_DIR)"; \
+				if [ ! -f "$(ACPBRIDGE_DATA_DIR)/config.yml" ]; then cp "$(CURDIR)/defaults/acp-bridge.yml" "$(ACPBRIDGE_DATA_DIR)/config.yml"; fi; \
 			fi; \
 		done; \
 	fi
@@ -139,11 +156,13 @@ build:
 	  --build-arg INSTALL_OPENCODE="$(INSTALL_OPENCODE)" \
 	  --build-arg INSTALL_OHO="$(INSTALL_OHO)" \
 	  --build-arg INSTALL_OHC="$(INSTALL_OHC)" \
+	  --build-arg INSTALL_ACPBRIDGE="$(INSTALL_ACPBRIDGE)" \
 	  --build-arg CODEX_VERSION="$(CODEX_VERSION)" \
 	  --build-arg CLAUDE_VERSION="$(CLAUDE_VERSION)" \
 	  --build-arg OPENCODE_VERSION="$(OPENCODE_VERSION)" \
 	  --build-arg OHO_VERSION="$(OHO_VERSION)" \
 	  --build-arg OHC_VERSION="$(OHC_VERSION)" \
+	  --build-arg ACPBRIDGE_VERSION="$(ACPBRIDGE_VERSION)" \
 	  --build-arg NODE_VERSION="$(NODE_VERSION)" \
 	  --build-arg USER_UID="$(HOST_UID)" \
 	  --build-arg USER_GID="$(HOST_GID)" \

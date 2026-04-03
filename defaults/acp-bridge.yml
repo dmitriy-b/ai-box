@@ -1,0 +1,39 @@
+server:
+  host: "0.0.0.0"
+  port: 18010
+  session_ttl_hours: 24
+  shutdown_timeout: 30
+  ui: false
+
+pool:
+  max_processes: 20
+  max_per_agent: 10
+
+security:
+  auth_token: "${ACP_BRIDGE_TOKEN}"
+  # allow all IPs inside Docker because Docker port-forwarding handles access
+  allowed_ips:
+    - "0.0.0.0/0"
+
+agents:
+  claude:
+    enabled: true
+    mode: "acp"
+    command: "claude-agent-acp"
+    acp_args: []
+    working_dir: "/tmp"
+    description: "Claude Code agent (via ACP adapter)"
+  codex:
+    enabled: true
+    mode: "pty"
+    command: "codex"
+    args: ["exec", "--full-auto", "--skip-git-repo-check"]
+    working_dir: "/tmp"
+    description: "OpenAI Codex CLI agent"
+  opencode:
+    enabled: true
+    mode: "acp"
+    command: "opencode"
+    acp_args: ["acp"]
+    working_dir: "/tmp"
+    description: "OpenCode agent (open source, multi-provider)"
