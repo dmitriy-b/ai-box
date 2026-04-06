@@ -4,7 +4,11 @@ set -euo pipefail
 VERSION="${OHC_VERSION:-latest}"
 PACKAGE="oh-my-claude-sisyphus@${VERSION}"
 
-echo "==> Installing OhMyOpenClaude ($PACKAGE) globally via npm..."
+echo "==> Installing oh-my-claudecode ($PACKAGE) globally via npm..."
 
-npm i -g "$PACKAGE" || true
+if [ "$(id -u)" -eq 0 ]; then
+  npm i -g "$PACKAGE"
+else
+  sudo env "PATH=$PATH" npm i -g "$PACKAGE"
+fi
 /usr/local/bin/mise reshim
