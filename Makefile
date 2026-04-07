@@ -150,6 +150,8 @@ endif
 
 ## build: Build the ai-box Docker image.
 build:
+	@echo "git-hash: $$(git rev-parse HEAD 2>/dev/null || echo 'unknown')" > .version
+	@echo "git-date: $$(git log -1 --format=%cd --date=iso 2>/dev/null || echo 'unknown')" >> .version
 	docker build \
 	  --build-arg INSTALL_CODEX="$(INSTALL_CODEX)" \
 	  --build-arg INSTALL_CLAUDE="$(INSTALL_CLAUDE)" \
@@ -297,7 +299,8 @@ export-with-data: setup-data
 		docker cp $(OPENCODE_DATA_DIR)/.local/state/opencode/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.local/state/opencode/; \
 	fi; \
 	if [ -d "$(OPENCODE_DATA_DIR)/.cache/opencode" ] && [ "$$(ls -A $(OPENCODE_DATA_DIR)/.cache/opencode)" ]; then \
-		docker cp $(OPENCODE_DATA_DIR)/.cache/opencode/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.cache/opencode/; \
+		docker cp $(OPENCODE_DATA_DIR)/.cache/opencode/. $(EXPORT_CONTAINER):$(HOME_DEV_DIR)/.cache/opencode/ || \
+			echo "Warning: opencode cache copy failed (non-critical, will be regenerated on first run)"; \
 	fi; \
 	echo "Committing to $(EXPORT_IMG)..."; \
 	docker commit $(EXPORT_CONTAINER) $(EXPORT_IMG) >/dev/null; \

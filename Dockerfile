@@ -145,6 +145,10 @@ RUN mkdir -p /home/dev/.claude && \
 RUN printf '#!/bin/bash\nset -e\n\nsudo chown "$(id -u)":"$(id -g)" /var/run/docker.sock 2>/dev/null || true\n\nif [ "${INSTALL_OHO:-false}" = "true" ] && [ ! -f ~/.config/opencode/oh-my-opencode.json ]; then\n    echo "Initializing OhMyOpenAgent for this workspace profile..."\n    mkdir -p ~/.config/opencode\n    oh-my-opencode install --no-tui \\\n        --claude=no --openai=no --gemini=no --copilot=no \\\n        --opencode-zen=no --zai-coding-plan=no || true\nfi\n\nif [ "${INSTALL_OHC:-false}" = "true" ] && command -v claude &>/dev/null; then\n    OHC_PKG_DIR="$(npm root -g)/oh-my-claude-sisyphus"\n    if [ -d "$OHC_PKG_DIR/.claude-plugin" ] && ! claude plugin list 2>/dev/null | grep -q oh-my-claudecode; then\n        echo "Registering oh-my-claudecode as Claude Code plugin..."\n        claude plugin marketplace add "$OHC_PKG_DIR" 2>/dev/null || true\n        claude plugin install oh-my-claudecode 2>/dev/null || true\n    fi\nfi\n\nexec "$@"\n' > /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# ── Version Info ──────────────────────────────────────────────────────────────
+
+COPY --chown="${USER_UID}:${USER_GID}" .version /ai-box.version
+
 # ── Workspace ─────────────────────────────────────────────────────────────────
 
 RUN mkdir -p /workspace && chown "${USER_UID}:${USER_GID}" /workspace

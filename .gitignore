@@ -14,3 +14,4 @@
 
 # Tool data volumes
 data/
+.version
