@@ -117,10 +117,10 @@ RUN chmod +x /usr/local/bin/install-*.sh \
          export "${version_varname}=$(eval echo \$${version_varname})"; \
          if [ "$(eval echo \$${varname})" = "true" ]; then \
              echo "Executing $script for $toolname..."; \
-             "$script"; \
+             "$script" || echo "WARNING: $script failed (exit $?), continuing..."; \
          fi; \
-       done \
-    && chmod -R a+rX /usr/local/share/mise 2>/dev/null || true
+       done; \
+    chmod -R a+rX /usr/local/share/mise 2>/dev/null || true
 
 # ── Create a non-root developer user ─────────────────────────────────────────
 # UID / GID are configurable at build time so that files written to a mounted
@@ -136,13 +136,18 @@ RUN groupadd --gid "${USER_GID}" dev 2>/dev/null || true \
     && usermod -aG docker dev 2>/dev/null || true \
     # Allow passwordless sudo for convenience in development.
     && echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev \
-    && chmod 0440 /etc/sudoers.d/dev
+    && chmod 0440 /etc/sudoers.d/dev \
+    # Ensure mise state/cache dirs exist and are writable for dev user.
+    && mkdir -p /home/dev/.local/state/mise/tracked-configs \
+               /home/dev/.local/share/mise \
+               /home/dev/.cache/mise \
+    && chown -R "${USER_UID}:${USER_GID}" /home/dev/.local /home/dev/.cache
 
 RUN mkdir -p /home/dev/.claude && \
     ln -s /home/dev/.claude/claude.json /home/dev/.claude.json && \
     chown -R "${USER_UID}:${USER_GID}" /home/dev/.claude /home/dev/.claude.json
 
-RUN printf '#!/bin/bash\nset -e\n\nsudo chown "$(id -u)":"$(id -g)" /var/run/docker.sock 2>/dev/null || true\n\nif [ "${INSTALL_OHO:-false}" = "true" ] && [ ! -f ~/.config/opencode/oh-my-opencode.json ]; then\n    echo "Initializing OhMyOpenAgent for this workspace profile..."\n    mkdir -p ~/.config/opencode\n    oh-my-opencode install --no-tui \\\n        --claude=no --openai=no --gemini=no --copilot=no \\\n        --opencode-zen=no --zai-coding-plan=no || true\nfi\n\nif [ "${INSTALL_OHC:-false}" = "true" ] && command -v claude &>/dev/null; then\n    OHC_PKG_DIR="$(npm root -g)/oh-my-claude-sisyphus"\n    if [ -d "$OHC_PKG_DIR/.claude-plugin" ] && ! claude plugin list 2>/dev/null | grep -q oh-my-claudecode; then\n        echo "Registering oh-my-claudecode as Claude Code plugin..."\n        claude plugin marketplace add "$OHC_PKG_DIR" 2>/dev/null || true\n        claude plugin install oh-my-claudecode 2>/dev/null || true\n    fi\nfi\n\nexec "$@"\n' > /usr/local/bin/entrypoint.sh
+RUN printf '#!/bin/bash\nset -e\n\n# Ensure mise shims and tool binaries are in PATH.\n# Shims delegate to mise, which may fail if its state dirs are unwritable;\n# fall back to the real binary dirs so commands like claude / oh-my-opencode\n# always resolve.\nexport MISE_DATA_DIR="/usr/local/share/mise"\nexport MISE_CONFIG_DIR="/etc/mise"\nfor bindir in "$MISE_DATA_DIR"/installs/*/latest/bin "$MISE_DATA_DIR"/installs/*/*/bin; do\n    [ -d "$bindir" ] && export PATH="$bindir:$PATH"\ndone\nexport PATH="$MISE_DATA_DIR/shims:$PATH"\n\nsudo chown "$(id -u)":"$(id -g)" /var/run/docker.sock 2>/dev/null || true\n\nif [ "${INSTALL_OHO:-false}" = "true" ] && [ ! -f ~/.config/opencode/oh-my-opencode.json ]; then\n    echo "Initializing OhMyOpenAgent for this workspace profile..."\n    mkdir -p ~/.config/opencode\n    if command -v oh-my-opencode &>/dev/null; then\n        oh-my-opencode install --no-tui \\\n            --claude=no --openai=no --gemini=no --copilot=no \\\n            --opencode-zen=no --zai-coding-plan=no || true\n    else\n        mise exec bun -- bunx --bun oh-my-opencode install --no-tui \\\n            --claude=no --openai=no --gemini=no --copilot=no \\\n            --opencode-zen=no --zai-coding-plan=no || true\n    fi\nfi\n\nif [ "${INSTALL_OHC:-false}" = "true" ] && command -v claude &>/dev/null; then\n    OHC_PKG_DIR="$(npm root -g)/oh-my-claude-sisyphus"\n    if [ -d "$OHC_PKG_DIR/.claude-plugin" ] && ! claude plugin list 2>/dev/null | grep -q oh-my-claudecode; then\n        echo "Registering oh-my-claudecode as Claude Code plugin..."\n        claude plugin marketplace add "$OHC_PKG_DIR" 2>/dev/null || true\n        claude plugin install oh-my-claudecode 2>/dev/null || true\n    fi\nfi\n\nexec "$@"\n' > /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # ── Version Info ──────────────────────────────────────────────────────────────
