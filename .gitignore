@@ -15,3 +15,5 @@
 # Tool data volumes
 data/
 .version
+ai-box-export.tar
+.omc/*
