@@ -12,3 +12,11 @@ else
   sudo env "PATH=$PATH" npm i -g "$PACKAGE"
 fi
 /usr/local/bin/mise reshim
+
+# Fix OMC hooks that ship with a hardcoded CI node path
+# (e.g. /opt/hostedtoolcache/node/…) instead of plain `node`.
+OHC_HOOKS="$(npm root -g)/oh-my-claude-sisyphus/hooks/hooks.json"
+if [ -f "$OHC_HOOKS" ] && grep -q '/opt/hostedtoolcache/' "$OHC_HOOKS"; then
+  echo "Patching hardcoded node path in OMC hooks..."
+  sed -i 's|\\"/opt/hostedtoolcache/[^\\]*node\\" |node |g' "$OHC_HOOKS"
+fi

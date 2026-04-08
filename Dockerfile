@@ -106,6 +106,12 @@ RUN mkdir -p /etc/mise \
 RUN echo 'export PATH="/usr/local/share/mise/shims:$PATH"' > /etc/profile.d/mise.sh && \
     chmod +x /etc/profile.d/mise.sh
 
+# Stable symlinks so that tools which resolve and hardcode process.execPath
+# (e.g. OMC plugin-setup.mjs) get a path that survives Node version bumps.
+RUN ln -sf "$(mise where node)/bin/node" /usr/local/bin/node \
+    && ln -sf "$(mise where node)/bin/npm"  /usr/local/bin/npm \
+    && ln -sf "$(mise where node)/bin/npx"  /usr/local/bin/npx
+
 # ── Install AI tools ──────────────────────────────────────────────────────────
 
 COPY scripts/install-*.sh /usr/local/bin/
