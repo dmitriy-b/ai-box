@@ -53,7 +53,7 @@
 
 Додано скрипт:
 
-- `/home/runner/work/ai-box/ai-box/scripts/poc-remote-claude-via-acp-bridge.sh`
+- `scripts/poc-remote-claude-via-acp-bridge.sh`
 
 Сценарій POC:
 1. З керуючої машини через SSH піднімає `acp-bridge` на віддаленій VM у Docker.
