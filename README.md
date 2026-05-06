@@ -97,6 +97,10 @@ make setup-data ACCOUNT=work_account SETUP_ARGS=opencode,codex
 
 The `ai-box` includes the [Sample ACP Bridge](https://github.com/aws-samples/sample-acp-bridge) by default, which provides a unified REST API for multiple CLI agents (Claude Code, Codex, OpenCode).
 
+Spike GOL-36 (ACP compatibility and orchestration decision):
+- ADR: `docs/adr/2026-05-06-gol-36-acp-orchestration.md`
+- POC script (remote Claude launch via ACP Bridge): `scripts/poc-remote-claude-via-acp-bridge.sh`
+
 ### 1. Setup Configuration
 
 Generate the default configuration file for your profile:
